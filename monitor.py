@@ -28,11 +28,16 @@ GITHUB_ADDRESSES = {
 }
 
 
+def get_db_path() -> pathlib.Path:
+    return pathlib.Path(__file__).parent / "versions.db"
+
+
 def init_db():
-    if not pathlib.Path("versions.db").exists():
-        db = sqlite3.connect("versions.db")
+    db_path = get_db_path()
+    if not db_path.exists():
+        db = sqlite3.connect(db_path)
         cursor = db.cursor()
-        with open("schema.sql", "r") as f:
+        with open(pathlib.Path(__file__).parent / "schema.sql", "r") as f:
             cursor.executescript(f.read())
         db.commit()
         db.close()
@@ -57,7 +62,7 @@ def get_github_versions(github_client: GithubClient, repo_name: str) -> list:
 
 
 def save_solana_cluster_versions(cluster_name: str, versions: dict):
-    db = sqlite3.connect("versions.db")
+    db = sqlite3.connect(get_db_path())
     cursor = db.cursor()
 
     for version in versions:
@@ -69,7 +74,7 @@ def save_solana_cluster_versions(cluster_name: str, versions: dict):
 
 
 def save_github_versions(name: str, versions: list):
-    db = sqlite3.connect("versions.db")
+    db = sqlite3.connect(get_db_path())
 
     cursor = db.cursor()
     for version in versions:
@@ -87,7 +92,7 @@ def send_slack_notification(channel: str, message: str, blocks: tp.Optional[list
 
 
 def notify_github_versions():
-    db = sqlite3.connect("versions.db")
+    db = sqlite3.connect(get_db_path())
     cursor = db.cursor()
 
     cursor.execute("""SELECT name,version FROM github_versions WHERE notified = 0""")
@@ -116,7 +121,7 @@ def notify_github_versions():
 
 
 def notify_solana_cluster_versions():
-    db = sqlite3.connect("versions.db")
+    db = sqlite3.connect(get_db_path())
     cursor = db.cursor()
 
     cursor.execute("""SELECT cluster,version FROM solana_clusters WHERE notified = 0""")
@@ -163,7 +168,7 @@ def get_program_last_update(solana_client: SolanaClient, program_address: str):
 
 
 def save_program_version(name: str, version: int, cluster: str):
-    db = sqlite3.connect("versions.db")
+    db = sqlite3.connect(get_db_path())
 
     cursor = db.cursor()
     cursor.execute("""INSERT OR IGNORE INTO programs(name,cluster,last_slot) VALUES (?,?,?)""",
@@ -173,7 +178,7 @@ def save_program_version(name: str, version: int, cluster: str):
 
 
 def notify_programs_version():
-    db = sqlite3.connect("versions.db")
+    db = sqlite3.connect(get_db_path())
     cursor = db.cursor()
 
     cursor.execute("""SELECT name,cluster,last_slot FROM programs WHERE notified = 0""")
